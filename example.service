@@ -1,0 +1,12 @@
+[Unit]
+Description=Example Application
+After=network.target
+
+[Service]
+Type=simple
+Environment=INSTANCE_PATH=/opt/example/instance
+ExecStart=/bin/sh -c 'INSTANCE_PATH=$INSTANCE_PATH /opt/example/run.sh'
+
+[Install]
+WantedBy=multi-user.target
+
