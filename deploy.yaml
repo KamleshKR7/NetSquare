@@ -1,32 +1,48 @@
 ---
   - hosts: all
     become: true
+    vars_files:
+      - data.yml
+      - secret.yml
     tasks:
-      
       - name: Create /opt/example directory
         file:
-          path: /opt/example
+          path: "{{ Deployment_Folder }}"
           state: directory
           mode: '0755'
 
       - name: Create /opt/example/instance
         file:
-          path: /opt/example/instance
+          path: "{{ Instance_Path }}"
           state: directory
           mode: '0755'
 
       - name: Copy the run.sh script to the target host
         copy:
           src: /home/ansadmin/NetSquare/run.sh
-          dest: /opt/example/run.sh
+          dest: "{{ Deployment_Folder }}/run.sh"
           mode: '0755'
 
       - name: Copy the config.py script to the target host
         copy:
-          src: /home/ansadmin/NetSquare/config.py
-          dest: /opt/example/instance/config.py
+          dest: "{{ Instance_Path }}/config.py"
+          content: |
+            SECRET_KEY = "{{ SECRET_KEY }}"
+            DB_PATH = "{{ DB_PATH }}"
           mode: '0755'
-                                
+
+      - name: Ensure correct permissions for config.py
+        file:
+          path: "{{ Instance_Path }}/config.py"
+          owner: root
+          group: root
+          mode: '0600'
+
+      - name: Set environment variables
+        shell: |
+          export "deployment_folder={{ Deployment_Folder }}"
+          export "port={{ port }} "
+                      
       - name: Install Python3 and pip (RedHat-based)
         yum:
           name:
@@ -38,8 +54,8 @@
 
       - name: Copy Flask application wheel file to the target system
         copy:
-          src: /home/ansadmin/NetSquare/Example-1.1.2-py3-none-any.whl
-          dest: /opt/example/Example-1.1.2-py3-none-any.whl
+          src: "/home/ansadmin/NetSquare/{{ Wheel }}"
+          dest: "/opt/example/{{ Wheel }}"
           mode: '0644'
 
       - name: Create a Python virtual environment
@@ -48,7 +64,7 @@
           creates: /opt/example/venv/bin/activate
 
       - name: Install Flask app dependencies from wheel or requirements.txt
-        command: /opt/example/venv/bin/pip install /opt/example/Example-1.1.2-py3-none-any.whl
+        command: /opt/example/venv/bin/pip install "/opt/example/{{ Wheel }}"
         args:
           creates: /opt/example/venv/lib/python*/site-packages/test
        
@@ -57,9 +73,7 @@
           src: /home/ansadmin/NetSquare/example.service
           dest: /etc/systemd/system/example.service
           mode: '0755'
-        notify: Reload systemd daemon
 
-    handlers:
       - name: Reload systemd daemon
         command: systemctl daemon-reload
 
@@ -68,5 +82,4 @@
           name: example.service
           enabled: true
           state: started
-        when: ansible_service_mgr == "systemd"
 
