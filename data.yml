@@ -2,3 +2,4 @@ Wheel: Example-1.1.2-py3-none-any.whl
 Deployment_Folder: /opt/example
 Instance_Path: /opt/example/instance
 port: 7000
+cert: CA2
