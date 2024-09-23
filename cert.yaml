@@ -1,6 +1,9 @@
 ---
   - hosts: all
     become: true
+    vars_files:
+      - keys.yml
+      - data.yml 
     tasks:
       - name: Install CA certificates
         yum:
@@ -13,9 +16,15 @@
 
       - name: Copy custom CA certificate
         copy:
-          src: /home/ansadmin/NetSquare/CA1.crt
-          dest: /etc/pki/ca-trust/source/anchors/CA1.crt
+          src: "/home/ansadmin/NetSquare/{{ cert }}.crt"
+          dest: "/etc/pki/ca-trust/source/anchors/{{ cert }}.crt"
           mode: '0644'
+            
+      - name: Copy the SSL private key
+        copy:
+          dest: "/etc/pki/ca-trust/source/anchors/{{ cert }}.key"
+          content: "{{ private_keys[cert] }}"
+          mode: '0600'
 
       - name: Update CA store with custom CA
         command: update-ca-trust
@@ -29,4 +38,3 @@
         fail:
           msg: "The custom CA certificate has expired!"
         when: cert_check_redhat.rc != 0
-
